@@ -66,6 +66,10 @@
 #define GETMCONTEXT       67
 #define SETMCONTEXT       68
 
+/* Semaphore group. */
+#define GETSEMGROUP   69
+#define SETSEMGROUP	  70
+
 /* Posix signal handling. */
 #define SIGACTION	  71
 #define SIGSUSPEND	  72
