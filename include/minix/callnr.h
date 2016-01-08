@@ -68,7 +68,7 @@
 
 /* Semaphore group. */
 #define GETSEMGROUP   69
-#define SETSEMGROUP	  70
+#define SETSEMGROUP   70
 
 /* Posix signal handling. */
 #define SIGACTION	  71
