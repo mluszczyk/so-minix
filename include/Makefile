@@ -21,7 +21,9 @@ INCS=	a.out.h aio.h ar.h assert.h atomic.h \
 	string.h sgtty.h signal.h stab.h stdbool.h stddef.h stdio.h \
 	stdlib.h strings.h stringlist.h struct.h sysexits.h tar.h time.h \
 	ttyent.h tzfile.h ucontext.h ulimit.h unistd.h util.h utime.h utmp.h \
-	utmpx.h uuid.h vis.h wchar.h wctype.h wordexp.h
+	utmpx.h uuid.h vis.h wchar.h wctype.h wordexp.h \
+	proc_sem.h
+
 INCS+=	arpa/ftp.h arpa/inet.h arpa/nameser.h arpa/nameser_compat.h \
 	arpa/telnet.h arpa/tftp.h
 INCS+=	protocols/dumprestore.h protocols/routed.h protocols/rwhod.h \

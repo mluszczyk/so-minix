@@ -3,8 +3,11 @@
 #include "mproc.h"
 
 int do_getsemgroup(void) {
-    int group = mp->mp_sem_group;
-    printf("DEBUG: getsemgroup of %d -> %d.\n", who_p, group);
+	// TODO: make sure endpoint is IPC server
+	pid_t proc_num = m_in.m1_i1;
+	struct mproc *rmp = find_proc(proc_num);
+    int group = rmp->mp_sem_group;
+    printf("DEBUG: getsemgroup of %d -> %d.\n", proc_num, group);
     return group;
 }
 

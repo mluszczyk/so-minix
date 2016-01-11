@@ -1128,6 +1128,12 @@
 #	define SEMOP_OPS	m2_l1
 #	define SEMOP_SIZE	m2_i2
 
+/* Proc semaphore */
+#define IPC_PROC_SEM_INIT (IPC_BASE+8)
+#define IPC_PROC_SEM_POST (IPC_BASE+9)
+#define IPC_PROC_SEM_WAIT (IPC_BASE+10)
+#define IPC_PROC_SEM_GET_NUM (IPC_BASE+11)
+
 /*===========================================================================*
  *                Messages for Scheduling				     *
  *===========================================================================*/
