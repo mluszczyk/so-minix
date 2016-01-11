@@ -270,6 +270,9 @@ static int sef_cb_init_fresh(int UNUSED(type), sef_init_info_t *UNUSED(info))
 		/* Get kernel endpoint identifier. */
 		rmp->mp_endpoint = ip->endpoint;
 
+		/* Set semaphore group. */
+		rmp->mp_sem_group = -1;
+
 		/* Tell VFS about this system process. */
 		mess.m_type = PM_INIT;
 		mess.PM_SLOT = ip->proc_nr;
