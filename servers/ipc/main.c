@@ -17,6 +17,10 @@ static struct {
 	{ IPC_SEMGET,	do_semget,	0 },
 	{ IPC_SEMCTL,	do_semctl,	0 },
 	{ IPC_SEMOP,	do_semop,	1 },
+	{ IPC_PROC_SEM_INIT,	do_proc_sem_init,		0 },
+	{ IPC_PROC_SEM_POST,	do_proc_sem_post,		0 },
+	{ IPC_PROC_SEM_WAIT,	do_proc_sem_wait,		0 },
+	{ IPC_PROC_SEM_GET_NUM,	do_proc_sem_get_num,	0 },
 };
 
 #define SIZE(a) (sizeof(a)/sizeof(a[0]))
