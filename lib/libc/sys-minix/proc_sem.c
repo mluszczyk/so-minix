@@ -3,23 +3,34 @@
 #include <minix/rs.h>
 #include <unistd.h>
 
-int proc_sem_get_num(void) {
-    message m;
+static int _ipc_syscall(int param, message *m) {
 	endpoint_t ipc_ep;
 	minix_rs_lookup("ipc", &ipc_ep);
 
-	int num = _syscall(ipc_ep, IPC_PROC_SEM_GET_NUM, &m);
+	int num = _syscall(ipc_ep, param, m);
 
-    return num;
+	return num;
+}
+
+int proc_sem_get_num(void) {
+    message m;
+	return _ipc_syscall(IPC_PROC_SEM_GET_NUM, &m);
 }
 
 int proc_sem_init(size_t n) {
     message m;
 	m.m1_i1 = n;
-	endpoint_t ipc_ep;
-	minix_rs_lookup("ipc", &ipc_ep);
+	return _ipc_syscall(IPC_PROC_SEM_INIT, &m);
+}
 
-	int num = _syscall(ipc_ep, IPC_PROC_SEM_INIT, &m);
+void proc_sem_post(size_t sem_nr) {
+    message m;
+	m.m1_i1 = sem_nr;
+	_ipc_syscall(IPC_PROC_SEM_POST, &m);
+}
 
-	return num;
+void proc_sem_wait(size_t sem_nr) {
+    message m;
+	m.m1_i1 = sem_nr;
+	_ipc_syscall(IPC_PROC_SEM_WAIT, &m);
 }

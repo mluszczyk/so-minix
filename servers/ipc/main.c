@@ -19,7 +19,7 @@ static struct {
 	{ IPC_SEMOP,	do_semop,	1 },
 	{ IPC_PROC_SEM_INIT,	do_proc_sem_init,		0 },
 	{ IPC_PROC_SEM_POST,	do_proc_sem_post,		0 },
-	{ IPC_PROC_SEM_WAIT,	do_proc_sem_wait,		0 },
+	{ IPC_PROC_SEM_WAIT,	do_proc_sem_wait,		1 },
 	{ IPC_PROC_SEM_GET_NUM,	do_proc_sem_get_num,	0 },
 };
 
