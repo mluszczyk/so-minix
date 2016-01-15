@@ -1,7 +1,7 @@
 #include "inc.h"
 #include <lib.h>
 
-#define SEM_GROUPS_MAX 10
+#define NR_SEM_GROUPS NR_PROCS
 #define GROUP_NUM_NOT_USED 0
 
 // Semaphore operations including data structures are loosely based
@@ -19,7 +19,7 @@ struct sem_group {
 	int sem_count;
 };
 
-struct sem_group sem_groups[SEM_GROUPS_MAX];
+struct sem_group sem_groups[NR_SEM_GROUPS];
 static int next_sem_group = 1;
 
 int getsemgroup(pid_t pid) {
@@ -37,7 +37,7 @@ int setsemgroup(pid_t pid, int group) {
 }
 
 struct sem_group *find_sem_group(int group_num) {
-	for (int i = 0; i < SEM_GROUPS_MAX; ++i) {
+	for (int i = 0; i < NR_SEM_GROUPS; ++i) {
 		if (sem_groups[i].group_num == group_num) {
 			return &sem_groups[i];
 		}
@@ -154,7 +154,7 @@ int do_proc_sem_get_num(message *mess) {
 
 void proc_sem_remove_process(endpoint_t pt)
 {
-	for (int i = 0; i < SEM_GROUPS_MAX; ++i) {
+	for (int i = 0; i < NR_SEM_GROUPS; ++i) {
 		for (int j = 0; j < sem_groups[i].sem_count; ++j) {
 			struct semaphore *sem = &sem_groups[i].sems[j];
 			for (int k = 0; k < sem->waiting_count; ++k) {
