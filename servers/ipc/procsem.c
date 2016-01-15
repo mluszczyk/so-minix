@@ -4,6 +4,9 @@
 #define SEM_GROUPS_MAX 10
 #define GROUP_NUM_NOT_USED 0
 
+// Semaphore operations including data structures are loosely based
+// on IPC semaphores.
+
 struct semaphore {
 	int val;
 	endpoint_t *waiting;
@@ -37,7 +40,6 @@ struct sem_group *find_sem_group(int group_num) {
 	printf("Find sem group %d\n", group_num);
 	for (int i = 0; i < SEM_GROUPS_MAX; ++i) {
 		if (sem_groups[i].group_num == group_num) {
-			printf("Found %d\n", i);
 			return &sem_groups[i];
 		}
 	}
@@ -80,18 +82,49 @@ int do_proc_sem_init(message *mess) {
 	return 0;
 }
 
+static void push_waiting(struct semaphore *sem, endpoint_t endpoint) {
+	++sem->waiting_count;
+	sem->waiting = realloc(
+		sem->waiting, sizeof(endpoint_t) * sem->waiting_count);
+	// TODO: what if realloc fails?
+	sem->waiting[sem->waiting_count - 1] = endpoint;
+}
+
+static endpoint_t pop_waiting(struct semaphore *sem) {
+	endpoint_t endpoint = sem->waiting[0];
+	--sem->waiting_count;
+	memmove(sem->waiting, sem->waiting + 1,
+		sem->waiting_count * sizeof(endpoint_t));
+	sem->waiting = realloc(
+		sem->waiting, sizeof(endpoint_t) * sem->waiting_count);
+	// TODO: what if realloc fails?
+	return endpoint;
+}
+
+static void wake_process(endpoint_t endpoint) {
+	message m;
+	m.m_type = OK;
+	sendnb(endpoint, &m);
+}
+
 int do_proc_sem_post(message *mess) {
-	printf("First sem %d\n", sem_groups[0].group_num);
 	struct sem_group *sg = get_sem_group(mess->m_source);
 	size_t num = mess->m1_i1;  // TODO: check if fits array bounds
 	printf("Called do_proc_sem_post sem %d/%d\n", num, sg->sem_count);
 	struct semaphore *sem = &sg->sems[num];
 
-	printf("Endpoint %d increments sem %d from %d\n",
-		mess->m_source, num, sem->val);
-	++sg->sems[num].val;
+	if (sem->waiting_count == 0) {
+		printf("Endpoint %d increments sem %d from %d\n",
+			mess->m_source, num, sem->val);
+		++sem->val;
+	} else {
+		printf("Endpoint %d wakes up process on sem %d\n",
+			mess->m_source, num);
+		endpoint_t endpoint = pop_waiting(sem);
+		printf("Waking up process %d\n", endpoint);
+		wake_process(endpoint);
+	}
 
-	// TODO: wake a waiting process
 	return 0;
 }
 
@@ -100,17 +133,15 @@ int do_proc_sem_wait(message *mess) {
 	size_t num = mess->m1_i1;  // TODO: check if in bounds
 	struct semaphore *sem = &sg->sems[num];
 
-	printf("Endpoint %d waiting for sem %d of value %d\n",
-		mess->m_source, num, sem->val);
 	if (sem->val > 0) {
-		sem->val -= 1;
-		message m;
-		m.m_type = OK;
-		sendnb(mess->m_source, &m);
+		printf("Endpoint %d going through sem %d of (previous) value %d\n",
+			mess->m_source, num, sem->val);
+		--sem->val;
+		wake_process(mess->m_source);
 	} else {
-		++sem->waiting_count;
-		sem->waiting = realloc(
-			sem->waiting, sizeof(endpoint_t) * sem->waiting_count);
+		printf("Endpoint %d waiting for sem %d of value %d\n",
+			mess->m_source, num, sem->val);
+		push_waiting(sem, mess->m_source);
 	}
 	return 0;
 }
