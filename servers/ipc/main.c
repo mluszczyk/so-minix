@@ -32,6 +32,26 @@ static void sef_local_startup(void);
 static int sef_cb_init_fresh(int type, sef_init_info_t *info);
 static void sef_cb_signal_handler(int signo);
 
+
+/* moved here from sem.c */
+static void process_vm_notify(void)
+{
+	endpoint_t pt;
+	int r;
+
+	while ((r = vm_query_exit(&pt)) >= 0) {
+		/* for each enpoint 'pt', check whether it's waiting... */
+		sem_remove_process(pt);
+		proc_sem_remove_process(pt);
+
+		if (r == 0)
+			break;
+	}
+	if (r < 0)
+		printf("IPC: query exit error!\n");
+}
+
+
 int main(int argc, char *argv[])
 {
 	message m;
@@ -55,8 +75,7 @@ int main(int argc, char *argv[])
 		if (call_type & NOTIFY_MESSAGE) {
 			switch (who_e) {
 			case VM_PROC_NR:
-				/* currently, only semaphore needs such information. */
-				sem_process_vm_notify();
+				process_vm_notify();
 				break;
 			default:
 				printf("IPC: ignoring notify() from %d\n",

@@ -40,13 +40,14 @@ int do_semctl(message *);
 int do_semop(message *);
 int is_sem_nil(void);
 int is_shm_nil(void);
-void sem_process_vm_notify(void);
+void sem_remove_process(endpoint_t pt);
 
 /* Proc sem handlers. */
 int do_proc_sem_init(message *);
 int do_proc_sem_post(message *);
 int do_proc_sem_wait(message *);
 int do_proc_sem_get_num(message *);
+void proc_sem_remove_process(endpoint_t pt);
 
 EXTERN int identifier;
 EXTERN endpoint_t who_e;

@@ -37,7 +37,6 @@ int setsemgroup(pid_t pid, int group) {
 }
 
 struct sem_group *find_sem_group(int group_num) {
-	printf("Find sem group %d\n", group_num);
 	for (int i = 0; i < SEM_GROUPS_MAX; ++i) {
 		if (sem_groups[i].group_num == group_num) {
 			return &sem_groups[i];
@@ -49,7 +48,7 @@ struct sem_group *find_sem_group(int group_num) {
 }
 
 struct sem_group *get_free_sem_group() {
-	return find_sem_group(0);
+	return find_sem_group(GROUP_NUM_NOT_USED);
 }
 
 struct sem_group *get_sem_group_by_pid(pid_t pid) {
@@ -90,14 +89,18 @@ static void push_waiting(struct semaphore *sem, endpoint_t endpoint) {
 	sem->waiting[sem->waiting_count - 1] = endpoint;
 }
 
-static endpoint_t pop_waiting(struct semaphore *sem) {
-	endpoint_t endpoint = sem->waiting[0];
+static void remove_waiting(struct semaphore *sem, int k) {
 	--sem->waiting_count;
-	memmove(sem->waiting, sem->waiting + 1,
-		sem->waiting_count * sizeof(endpoint_t));
+	memmove(sem->waiting + k, sem->waiting + k + 1,
+		(sem->waiting_count - k) * sizeof(endpoint_t));
 	sem->waiting = realloc(
 		sem->waiting, sizeof(endpoint_t) * sem->waiting_count);
 	// TODO: what if realloc fails?
+}
+
+static endpoint_t pop_waiting(struct semaphore *sem) {
+	endpoint_t endpoint = sem->waiting[0];
+	remove_waiting(sem, 0);
 	return endpoint;
 }
 
@@ -110,7 +113,6 @@ static void wake_process(endpoint_t endpoint) {
 int do_proc_sem_post(message *mess) {
 	struct sem_group *sg = get_sem_group(mess->m_source);
 	size_t num = mess->m1_i1;  // TODO: check if fits array bounds
-	printf("Called do_proc_sem_post sem %d/%d\n", num, sg->sem_count);
 	struct semaphore *sem = &sg->sems[num];
 
 	if (sem->waiting_count == 0) {
@@ -118,10 +120,8 @@ int do_proc_sem_post(message *mess) {
 			mess->m_source, num, sem->val);
 		++sem->val;
 	} else {
-		printf("Endpoint %d wakes up process on sem %d\n",
-			mess->m_source, num);
 		endpoint_t endpoint = pop_waiting(sem);
-		printf("Waking up process %d\n", endpoint);
+		printf("Endpoint %d wakes up process %d\n", mess->m_source, endpoint);
 		wake_process(endpoint);
 	}
 
@@ -149,6 +149,23 @@ int do_proc_sem_wait(message *mess) {
 int do_proc_sem_get_num(message *mess) {
 	pid_t pid = getnpid(mess->m_source);
 	int num = getsemgroup(pid);
-	printf("ICP: Get num %d -> %d\n", pid, num);
 	return num;
+}
+
+void proc_sem_remove_process(endpoint_t pt)
+{
+	for (int i = 0; i < SEM_GROUPS_MAX; ++i) {
+		for (int j = 0; j < sem_groups[i].sem_count; ++j) {
+			struct semaphore *sem = &sem_groups[i].sems[j];
+			for (int k = 0; k < sem->waiting_count; ++k) {
+				if (sem->waiting[k] == pt) {
+					printf("Removing endpoint %d from waiting\n", pt);
+					remove_waiting(sem, k);
+					// it shouldn't occur more than once, but 
+					// it doesn't cost much to verify the rest
+					k--;
+				}
+			}
+		}
+	}
 }

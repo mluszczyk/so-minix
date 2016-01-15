@@ -164,7 +164,7 @@ static void show_semaphore(void)
 }
 #endif
 
-static void remove_process(endpoint_t pt)
+void sem_remove_process(endpoint_t pt)
 {
 	int i;
 
@@ -592,23 +592,3 @@ int is_sem_nil(void)
 {
 	return (sem_list_nr == 0);
 }
-
-/*===========================================================================*
- *				sem_process_vm_notify	     		     *
- *===========================================================================*/
-void sem_process_vm_notify(void)
-{
-	endpoint_t pt;
-	int r;
-
-	while ((r = vm_query_exit(&pt)) >= 0) {
-		/* for each enpoint 'pt', check whether it's waiting... */
-		remove_process(pt);
-
-		if (r == 0)
-			break;
-	}
-	if (r < 0)
-		printf("IPC: query exit error!\n");
-}
-
