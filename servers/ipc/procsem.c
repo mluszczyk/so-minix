@@ -58,8 +58,7 @@ struct sem_group *get_sem_group_by_pid(pid_t pid) {
 
 struct sem_group *get_sem_group(endpoint_t endpoint) {
 	pid_t pid = getnpid(endpoint);
-	int group_num = getsemgroup(pid);
-	return find_sem_group(group_num);
+	return get_sem_group_by_pid(pid);
 }
 
 int do_proc_sem_init(message *mess) {
@@ -72,6 +71,11 @@ int do_proc_sem_init(message *mess) {
 	setsemgroup(pid, group);
 
 	struct sem_group *sg = get_free_sem_group();
+	if (sg == NULL) {
+		printf("No group found.\n");
+		// TODO: handle this
+		return 0;
+	}
 	sg->group_num = group;
 	sg->sem_count = count;
 	sg->sems = calloc(count, sizeof(struct semaphore));
@@ -112,6 +116,12 @@ static void wake_process(endpoint_t endpoint) {
 
 int do_proc_sem_post(message *mess) {
 	struct sem_group *sg = get_sem_group(mess->m_source);
+	if (sg == NULL) {
+		// TODO: handle this
+		printf("Sem group not found\n");
+		return -1;
+	}
+
 	size_t num = mess->m1_i1;  // TODO: check if fits array bounds
 	struct semaphore *sem = &sg->sems[num];
 
@@ -152,19 +162,25 @@ int do_proc_sem_get_num(message *mess) {
 	return num;
 }
 
-void proc_sem_remove_process(endpoint_t pt)
-{
-	for (int i = 0; i < NR_SEM_GROUPS; ++i) {
-		for (int j = 0; j < sem_groups[i].sem_count; ++j) {
-			struct semaphore *sem = &sem_groups[i].sems[j];
-			for (int k = 0; k < sem->waiting_count; ++k) {
-				if (sem->waiting[k] == pt) {
-					printf("Removing endpoint %d from waiting\n", pt);
-					remove_waiting(sem, k);
-					// it shouldn't occur more than once, but 
-					// it doesn't cost much to verify the rest
-					k--;
-				}
+void proc_exited(endpoint_t pt, int group) {
+	if (group == -1) {
+		return;
+	}
+	printf("Removing proc %d from group %d\n", pt, group);
+	struct sem_group *sg = find_sem_group(group);
+	if (sg == NULL) {
+		printf("Sem group not found!\n");
+		return;
+	}
+	for (int j = 0; j < sg->sem_count; ++j) {
+		struct semaphore *sem = &sg->sems[j];
+		for (int k = 0; k < sem->waiting_count; ++k) {
+			if (sem->waiting[k] == pt) {
+				printf("Removing endpoint %d from waiting\n", pt);
+				remove_waiting(sem, k);
+				// it shouldn't occur more than once, but 
+				// it doesn't cost much to verify the rest
+				k--;
 			}
 		}
 	}

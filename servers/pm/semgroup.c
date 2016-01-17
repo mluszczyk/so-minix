@@ -39,6 +39,8 @@ void notify_ipc_proc_exit(endpoint_t pt, int group) {
 		m.m_type = PM_IPC_PROC_EXITED;
 		m.m1_i1 = pt;
 		m.m1_i2 = group;
-		sendnb(ipc, &m);
+		asynsend3(ipc, &m, AMF_NOREPLY);
+	} else {
+		printf("IPC not found!\n");
 	}
 }
