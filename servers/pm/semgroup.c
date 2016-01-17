@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include "pm.h"
 #include "mproc.h"
 
@@ -19,4 +20,23 @@ int do_setsemgroup(void) {
 	struct mproc *rmp = find_proc(pid);
 	rmp->mp_sem_group = new_group;
     return 0;
+}
+
+// Hard to get minix_rs_lookup working here
+endpoint_t find_ipc() {
+	for (struct mproc *rmp = &mproc[0]; rmp < &mproc[NR_PROCS]; ++rmp) {
+		if (strcmp(rmp->mp_name, "ipc") == 0) {
+			return rmp->mp_endpoint;
+		}
+	}
+	return 0;
+}
+
+void notify_ipc_proc_exit(endpoint_t pt, int group) {
+	endpoint_t ipc = find_ipc();
+	message m;
+	m.m_type = PM_IPC_PROC_EXITED;
+	m.m1_i1 = pt;
+	m.m1_i2 = group;
+	sendnb(ipc, &m);
 }

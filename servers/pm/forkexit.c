@@ -327,6 +327,7 @@ int dump_core;			/* flag indicating whether to dump core */
     m.PM_PATH = rmp->mp_name;
   }
 
+  notify_ipc_proc_exit(rmp->mp_endpoint, rmp->mp_sem_group);
   tell_vfs(rmp, &m);
 
   if (rmp->mp_flags & PRIV_PROC)

@@ -107,3 +107,5 @@ void tell_vfs(struct mproc *rmp, message *m_ptr);
 /* semgroup.c */
 int do_getsemgroup(void);
 int do_setsemgroup(void);
+void notify_ipc_proc_fork(endpoint_t, int group);
+void notify_ipc_proc_exit(endpoint_t, int group);
