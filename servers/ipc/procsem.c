@@ -1,8 +1,12 @@
 #include "inc.h"
 #include <lib.h>
 
+// Number of groups
 #define NR_SEM_GROUPS NR_PROCS
+// Group reserved for unused slots in sem_groups table
 #define GROUP_NUM_NOT_USED 0
+// Default group before calling init
+#define GROUP_NUM_NONE -1
 
 // Semaphore operations including data structures are loosely based
 // on IPC semaphores.
@@ -36,26 +40,28 @@ int setsemgroup(pid_t pid, int group) {
     return _syscall(PM_PROC_NR, SETSEMGROUP, &m);
 }
 
+// Returns sem_group with given number of NULL if not found.
 struct sem_group *find_sem_group(int group_num) {
 	for (int i = 0; i < NR_SEM_GROUPS; ++i) {
 		if (sem_groups[i].group_num == group_num) {
 			return &sem_groups[i];
 		}
 	}
-	// so bad. TODO: deal with it
-	printf("Not found!\n");
 	return NULL;
 }
 
+// Returns unused sem_group or NONE
 struct sem_group *get_free_sem_group() {
 	return find_sem_group(GROUP_NUM_NOT_USED);
 }
 
+// Returns sem_group of given process by PID
 struct sem_group *get_sem_group_by_pid(pid_t pid) {
 	int group_num = getsemgroup(pid);
 	return find_sem_group(group_num);
 }
 
+// Returns sem_group of given process by endpoint
 struct sem_group *get_sem_group(endpoint_t endpoint) {
 	pid_t pid = getnpid(endpoint);
 	return get_sem_group_by_pid(pid);
@@ -64,23 +70,24 @@ struct sem_group *get_sem_group(endpoint_t endpoint) {
 int do_proc_sem_init(message *mess) {
 	pid_t pid = getnpid(mess->m_source);
 	int count = mess->m1_i1;
-	printf("ICP: Set group of %d to %d (%d)\n",
-		pid, next_sem_group, mess->m1_i1);
+
+	struct sem_group *sg = get_free_sem_group();
+	if (sg == NULL) {
+		return ENOMEM;
+	}
+	sg->sems = calloc(count, sizeof(struct semaphore));
+	if (sg->sems == NULL) {
+		return ENOMEM;
+	}
+
+	// from now on it shouldn't fail
 	int group = next_sem_group;
 	++next_sem_group;
 	setsemgroup(pid, group);
 
-	struct sem_group *sg = get_free_sem_group();
-	if (sg == NULL) {
-		printf("No group found.\n");
-		// TODO: handle this
-		return 0;
-	}
+	memset(sg->sems, 0, count * sizeof(struct semaphore));
 	sg->group_num = group;
 	sg->sem_count = count;
-	sg->sems = calloc(count, sizeof(struct semaphore));
-	// TODO: it could fail!
-	memset(sg->sems, 0, count * sizeof(struct semaphore));
 
 	return 0;
 }
@@ -163,7 +170,7 @@ int do_proc_sem_get_num(message *mess) {
 }
 
 void proc_exited(endpoint_t pt, int group) {
-	if (group == -1) {
+	if (group == GROUP_NUM_NONE) {
 		return;
 	}
 	printf("Removing proc %d from group %d\n", pt, group);
