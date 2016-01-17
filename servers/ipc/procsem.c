@@ -21,6 +21,7 @@ struct sem_group {
 	int group_num;  // default is 0 = GROUP_NUM_NOT_USED
 	struct semaphore *sems;
 	int sem_count;
+	int proc_count;
 };
 
 struct sem_group sem_groups[NR_SEM_GROUPS];
@@ -38,6 +39,16 @@ int setsemgroup(pid_t pid, int group) {
     m.m1_i1 = pid;
     m.m1_i2 = group;
     return _syscall(PM_PROC_NR, SETSEMGROUP, &m);
+}
+
+void decrease_proc_count(struct sem_group* sg) {
+	sg->proc_count -= 1;
+	if (sg->proc_count == 0) {
+		sg->group_num = GROUP_NUM_NOT_USED;
+		sg->sem_count = 0;
+		free(sg->sems);
+		sg->sems = NULL;
+	}
 }
 
 // Returns sem_group with given number of NULL if not found.
@@ -58,7 +69,11 @@ struct sem_group *get_free_sem_group() {
 // Returns sem_group of given process by PID
 struct sem_group *get_sem_group_by_pid(pid_t pid) {
 	int group_num = getsemgroup(pid);
-	return find_sem_group(group_num);
+	if (group_num == GROUP_NUM_NONE) {
+		return NULL;
+	} else {
+		return find_sem_group(group_num);
+	}
 }
 
 // Returns sem_group of given process by endpoint
@@ -81,6 +96,11 @@ int do_proc_sem_init(message *mess) {
 	}
 
 	// from now on it shouldn't fail
+	struct sem_group *old_group = get_sem_group_by_pid(pid);
+	if (old_group != NULL) {
+		decrease_proc_count(old_group);
+	}
+
 	int group = next_sem_group;
 	++next_sem_group;
 	setsemgroup(pid, group);
@@ -88,6 +108,7 @@ int do_proc_sem_init(message *mess) {
 	memset(sg->sems, 0, count * sizeof(struct semaphore));
 	sg->group_num = group;
 	sg->sem_count = count;
+	sg->proc_count = 1;
 
 	return 0;
 }
@@ -169,6 +190,17 @@ int do_proc_sem_get_num(message *mess) {
 	return num;
 }
 
+void proc_forked(endpoint_t pt, int group) {
+	if (group == GROUP_NUM_NONE) {
+		return;
+	}
+	struct sem_group *sg = find_sem_group(group);
+	if (sg == NULL) {
+		return;
+	}
+	sg->proc_count += 1;
+}
+
 void proc_exited(endpoint_t pt, int group) {
 	if (group == GROUP_NUM_NONE) {
 		return;
@@ -191,4 +223,5 @@ void proc_exited(endpoint_t pt, int group) {
 			}
 		}
 	}
+	decrease_proc_count(sg);
 }

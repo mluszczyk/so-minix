@@ -32,15 +32,23 @@ endpoint_t find_ipc() {
 	return -1;
 }
 
-void notify_ipc_proc_exit(endpoint_t pt, int group) {
+static void notify_ipc_proc(endpoint_t pt, int group, int type) {
 	endpoint_t ipc = find_ipc();
 	if (ipc != -1) {
 		message m;
-		m.m_type = PM_IPC_PROC_EXITED;
+		m.m_type = type;
 		m.m1_i1 = pt;
 		m.m1_i2 = group;
 		asynsend3(ipc, &m, AMF_NOREPLY);
 	} else {
 		printf("IPC not found!\n");
 	}
+}
+
+void notify_ipc_proc_exit(endpoint_t pt, int group) {
+	notify_ipc_proc(pt, group, PM_IPC_PROC_EXITED);
+}
+
+void notify_ipc_proc_fork(endpoint_t pt, int group) {
+	notify_ipc_proc(pt, group, PM_IPC_PROC_FORKED);
 }

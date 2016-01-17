@@ -66,9 +66,14 @@ int main(int argc, char *argv[])
 			continue;
 		}
 
-		if (call_type == PM_IPC_PROC_EXITED) {
-			proc_exited(m.m1_i1, m.m1_i2);
-			continue;
+		if (who_e == PM_PROC_NR) {
+			if (call_type == PM_IPC_PROC_EXITED) {
+				proc_exited(m.m1_i1, m.m1_i2);
+				continue;
+			} else if (call_type == PM_IPC_PROC_FORKED) {
+				proc_forked(m.m1_i1, m.m1_i2);
+				continue;
+			}
 		}
 
 		/*

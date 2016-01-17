@@ -120,6 +120,7 @@ int do_fork()
   m.PM_REUID = -1;	/* Not used by PM_FORK */
   m.PM_REGID = -1;	/* Not used by PM_FORK */
 
+  notify_ipc_proc_fork(rmp->mp_endpoint, rmp->mp_sem_group);
   tell_vfs(rmc, &m);
 
 #if USE_TRACE

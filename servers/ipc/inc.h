@@ -48,6 +48,7 @@ int do_proc_sem_post(message *);
 int do_proc_sem_wait(message *);
 int do_proc_sem_get_num(message *);
 
+void proc_forked(endpoint_t pt, int group);
 void proc_exited(endpoint_t pt, int group);
 
 EXTERN int identifier;
