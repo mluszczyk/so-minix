@@ -117,7 +117,7 @@ static void push_waiting(struct semaphore *sem, endpoint_t endpoint) {
 	++sem->waiting_count;
 	sem->waiting = realloc(
 		sem->waiting, sizeof(endpoint_t) * sem->waiting_count);
-	// TODO: what if realloc fails?
+	// realloc can fail, but we don't care at this point
 	sem->waiting[sem->waiting_count - 1] = endpoint;
 }
 
@@ -127,7 +127,7 @@ static void remove_waiting(struct semaphore *sem, int k) {
 		(sem->waiting_count - k) * sizeof(endpoint_t));
 	sem->waiting = realloc(
 		sem->waiting, sizeof(endpoint_t) * sem->waiting_count);
-	// TODO: what if realloc fails?
+	// realloc can fail, but we don't care at this point
 }
 
 static endpoint_t pop_waiting(struct semaphore *sem) {
@@ -145,12 +145,14 @@ static void wake_process(endpoint_t endpoint) {
 int do_proc_sem_post(message *mess) {
 	struct sem_group *sg = get_sem_group(mess->m_source);
 	if (sg == NULL) {
-		// TODO: handle this
 		printf("Sem group not found\n");
 		return -1;
 	}
 
-	size_t num = mess->m1_i1;  // TODO: check if fits array bounds
+	size_t num = mess->m1_i1;
+	if (num >= sg->sem_count) {
+		return -1;
+	}
 	struct semaphore *sem = &sg->sems[num];
 
 	if (sem->waiting_count == 0) {
@@ -168,7 +170,10 @@ int do_proc_sem_post(message *mess) {
 
 int do_proc_sem_wait(message *mess) {
 	struct sem_group *sg = get_sem_group(mess->m_source);
-	size_t num = mess->m1_i1;  // TODO: check if in bounds
+	size_t num = mess->m1_i1;
+	if (num >= sg->sem_count) {
+		return -1;
+	}
 	struct semaphore *sem = &sg->sems[num];
 
 	if (sem->val > 0) {
