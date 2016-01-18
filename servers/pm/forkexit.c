@@ -120,7 +120,9 @@ int do_fork()
   m.PM_REUID = -1;	/* Not used by PM_FORK */
   m.PM_REGID = -1;	/* Not used by PM_FORK */
 
-  notify_ipc_proc_fork(rmp->mp_endpoint, rmp->mp_sem_group);
+  if (rmp->mp_sem_group > 0) {
+    notify_ipc_proc_fork(rmp->mp_endpoint, rmp->mp_sem_group);
+  }
   tell_vfs(rmc, &m);
 
 #if USE_TRACE
@@ -328,7 +330,9 @@ int dump_core;			/* flag indicating whether to dump core */
     m.PM_PATH = rmp->mp_name;
   }
 
-  notify_ipc_proc_exit(rmp->mp_endpoint, rmp->mp_sem_group);
+  if (rmp->mp_sem_group > 0) {
+    notify_ipc_proc_exit(rmp->mp_endpoint, rmp->mp_sem_group);
+  }
   tell_vfs(rmp, &m);
 
   if (rmp->mp_flags & PRIV_PROC)
