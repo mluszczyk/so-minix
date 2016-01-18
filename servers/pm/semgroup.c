@@ -21,20 +21,24 @@
 #include "mproc.h"
 
 int do_getsemgroup(void) {
-	// TODO: make sure endpoint is IPC server
+	if (!(mp->mp_flags & PRIV_PROC)) {
+		return -2;
+	}
 	pid_t pid = m_in.m1_i1;
 	struct mproc *rmp = find_proc(pid);
-    int group = rmp->mp_sem_group;
-    return group;
+	int group = rmp->mp_sem_group;
+	return group;
 }
 
 int do_setsemgroup(void) {
-	// TODO: make sure endpoint is an IPC server
-    pid_t pid = m_in.m1_i1;
-    int new_group = m_in.m1_i2;
+	if (!(mp->mp_flags & PRIV_PROC)) {
+		return -2;
+	}
+	pid_t pid = m_in.m1_i1;
+	int new_group = m_in.m1_i2;
 	struct mproc *rmp = find_proc(pid);
 	rmp->mp_sem_group = new_group;
-    return 0;
+	return 0;
 }
 
 // Copied from user space library
